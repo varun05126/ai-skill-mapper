@@ -5,10 +5,33 @@ export default function App() {
   const [company, setCompany] = useState("");
   const [jobRole, setJobRole] = useState("");
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const generate = async () => {
-    const res = await axios.post("/api/generate", { company, jobRole });
-    setResult(res.data);
+    if (!company.trim() || !jobRole.trim()) {
+      setError("Please enter both company and job role.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const res = await axios.post(
+        "https://ai-skill-mapper.vercel.app/api/generate",
+        { company, jobRole },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      setResult(res.data);
+    } catch (err) {
+      console.error("Frontend Error:", err);
+      setError("Error generating results. Please try again.");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -24,23 +47,30 @@ export default function App() {
           value={company}
           onChange={(e) => setCompany(e.target.value)}
         />
+
         <input
           className="w-full p-2 border rounded"
           placeholder="👔 Enter Job Role"
           value={jobRole}
           onChange={(e) => setJobRole(e.target.value)}
         />
+
         <button
           onClick={generate}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
         >
-          Generate
+          {loading ? "Generating…" : "Generate"}
         </button>
       </div>
 
+      {error && (
+        <p className="text-red-600 mt-4 text-center">{error}</p>
+      )}
+
       {result && (
-        <pre className="mt-6 p-4 bg-white shadow rounded text-sm">
-          {JSON.stringify(result, null, 2)}
+        <pre className="mt-6 p-4 bg-white shadow rounded text-sm overflow-auto">
+{JSON.stringify(result, null, 2)}
         </pre>
       )}
     </div>
