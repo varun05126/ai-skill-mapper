@@ -9,25 +9,32 @@ export default function App() {
   const [error, setError] = useState("");
 
   const generate = async () => {
-    if (!company.trim() || !jobRole.trim()) {
-      setError("Please enter both company and job role.");
-      return;
-    }
+  if (!company.trim() || !jobRole.trim()) {
+    setError("Please enter both company and job role.");
+    return;
+  }
 
-    setLoading(true);
-    setError("");
-    setData(null);
+  setLoading(true);
+  setError("");
+  setData(null);
 
-    try {
-      const res = await axios.post('/api/generate', { company, jobRole });
-      setData(res.data);
-    } catch (err) {
-      console.error("Frontend error:", err);
-      setError("Something went wrong. Please try again.");
-    }
+  try {
+    const res = await axios.post(
+      "https://ai-skill-mapper.vercel.app/api/generate",
+      { company, jobRole },
+      {
+        headers: { "Content-Type": "application/json" }
+      }
+    );
 
-    setLoading(false);
-  };
+    setData(res.data);
+  } catch (err) {
+    console.error("Frontend error:", err);
+    setError("Something went wrong. Please try again.");
+  }
+
+  setLoading(false);
+};
 
   return (
     <div className="p-6 max-w-3xl mx-auto mt-10 bg-white shadow-lg rounded-xl">
