@@ -6,11 +6,26 @@ export default function App() {
   const [jobRole, setJobRole] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const generate = async () => {
+    if (!company.trim() || !jobRole.trim()) {
+      setError("Please enter both company and job role.");
+      return;
+    }
+
     setLoading(true);
-    const res = await axios.post('/api/generate', { company, jobRole });
-    setData(res.data);
+    setError("");
+    setData(null);
+
+    try {
+      const res = await axios.post('/api/generate', { company, jobRole });
+      setData(res.data);
+    } catch (err) {
+      console.error("Frontend error:", err);
+      setError("Something went wrong. Please try again.");
+    }
+
     setLoading(false);
   };
 
@@ -27,24 +42,28 @@ export default function App() {
           value={company}
           onChange={(e) => setCompany(e.target.value)}
         />
+
         <input
           className="w-full p-3 border rounded"
           placeholder="👔 Enter job role"
           value={jobRole}
           onChange={(e) => setJobRole(e.target.value)}
         />
+
         <button
           onClick={generate}
           className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
         >
-          Generate
+          {loading ? "Generating…" : "Generate"}
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-center">Generating...</p>}
+      {error && (
+        <p className="text-red-600 mt-4 text-center">{error}</p>
+      )}
 
       {data && (
-        <pre className="mt-6 bg-gray-100 p-4 rounded text-sm">
+        <pre className="mt-6 bg-gray-100 p-4 rounded text-sm overflow-auto">
 {JSON.stringify(data, null, 2)}
         </pre>
       )}
