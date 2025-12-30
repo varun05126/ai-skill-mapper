@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { generateSkillsWithAssistant } from "./services/groqService";
 
 export default function App() {
   const [company, setCompany] = useState("");
@@ -19,13 +20,9 @@ export default function App() {
     setResult(null);
 
     try {
-      const res = await axios.post(
-        "https://ai-skill-mapper.vercel.app/api/generate",
-        { company, jobRole },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const res = await generateSkillsWithAssistant(company, jobRole);
+    setResult(res);
 
-      setResult(res.data);
     } catch (err) {
       console.error("Frontend Error:", err);
       setError("Error generating results. Please try again.");
