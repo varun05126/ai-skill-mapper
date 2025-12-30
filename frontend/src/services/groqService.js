@@ -1,8 +1,7 @@
-cat > src/services/groqService.js << 'EOF'
 import axios from 'axios';
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const COMET_API_KEY = import.meta.env.VITE_PPLX_API_KEY;
+const COMET_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 const DEFAULT_SKILLS = {
   skills: [
@@ -18,21 +17,22 @@ const DEFAULT_SKILLS = {
   learning_path: ['JavaScript', 'React', 'Node.js', 'SQL', 'REST APIs']
 };
 
-export const generateSkillsWithGroq = async (company, jobRole) => {
+export const generateSkillsWithAssistant = async (company, jobRole) => {
   try {
-    if (!GROQ_API_KEY) {
+    if (!COMET_API_KEY) {
       console.warn('Using default skills - API key not configured');
       return DEFAULT_SKILLS;
     }
 
     const response = await axios.post(
-      GROQ_API_URL,
+      COMET_API_URL,
       {
-        model: 'mixtral-8x7b-32768',
+        model: 'llama-3.1-sonar-small-128k-online',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert career advisor. Return ONLY valid JSON with no markdown.'
+            content:
+              'You are an expert career advisor. Return ONLY valid JSON with no markdown or explanations.'
           },
           {
             role: 'user',
@@ -44,22 +44,25 @@ export const generateSkillsWithGroq = async (company, jobRole) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          Authorization: `Bearer ${COMET_API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
     );
 
     const content = response.data.choices[0].message.content.trim();
+
     let jsonStr = content;
-    if (content.includes('```
-      jsonStr = content.split('```')[1].replace('json', '').trim();
+    if (content.includes('```')) {
+      jsonStr = content
+        .split('```')[1]
+        .replace('json', '')
+        .trim();
     }
-    
+
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('Groq API Error:', error.message);
+    console.error('Assistant API Error:', error.message);
     return DEFAULT_SKILLS;
   }
 };
-EOF
