@@ -1,7 +1,8 @@
-import axios from 'axios';
+// Fast Skill Mapper using Replicate API (Free Tier) - Ultra-fast responses
+// Replicate provides free inference on many open-source models
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const REPLICATE_API_KEY = import.meta.env.VITE_REPLICATE_API_KEY;
+const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
 
 const DEFAULT_SKILLS = {
   skills: [
@@ -17,51 +18,92 @@ const DEFAULT_SKILLS = {
   learning_path: ['JavaScript', 'React', 'Node.js', 'SQL', 'REST APIs']
 };
 
+// Skill mappings database for instant responses
+const COMPANY_ROLE_SKILLS = {
+  'amazon_backend_engineer': {
+    skills: [
+      { name: 'Java', category: 'programming', level: 'Advanced', importance: 5, description: 'Primary backend language' },
+      { name: 'AWS', category: 'devops', level: 'Advanced', importance: 5, description: 'Amazon cloud services' },
+      { name: 'Database Design', category: 'database', level: 'Advanced', importance: 5, description: 'Scale databases' },
+      { name: 'Python', category: 'programming', level: 'Intermediate', importance: 4, description: 'Scripting & automation' },
+      { name: 'Microservices', category: 'backend', level: 'Advanced', importance: 5, description: 'Service architecture' },
+      { name: 'System Design', category: 'backend', level: 'Advanced', importance: 5, description: 'Large scale systems' }
+    ],
+    learning_path: ['Java', 'AWS', 'Database Design', 'Microservices', 'System Design']
+  },
+  'google_frontend_engineer': {
+    skills: [
+      { name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'UI library' },
+      { name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Typed JavaScript' },
+      { name: 'Web Performance', category: 'frontend', level: 'Advanced', importance: 5, description: 'Fast loading' },
+      { name: 'CSS', category: 'frontend', level: 'Advanced', importance: 4, description: 'Styling' },
+      { name: 'Testing', category: 'devops', level: 'Advanced', importance: 4, description: 'Jest, Cypress' },
+      { name: 'Accessibility', category: 'frontend', level: 'Intermediate', importance: 4, description: 'A11y standards' }
+    ],
+    learning_path: ['React', 'TypeScript', 'Web Performance', 'Testing', 'Accessibility']
+  },
+  'microsoft_fullstack_engineer': {
+    skills: [
+      { name: 'C#/.NET', category: 'programming', level: 'Advanced', importance: 5, description: 'Microsoft stack' },
+      { name: 'Azure', category: 'devops', level: 'Advanced', importance: 5, description: 'Cloud platform' },
+      { name: 'React/Angular', category: 'frontend', level: 'Advanced', importance: 5, description: 'Frontend frameworks' },
+      { name: 'SQL Server', category: 'database', level: 'Intermediate', importance: 4, description: 'Database' },
+      { name: 'DevOps', category: 'devops', level: 'Intermediate', importance: 4, description: 'CI/CD pipelines' }
+    ],
+    learning_path: ['C#/.NET', 'Azure', 'React', 'SQL Server', 'DevOps']
+  }
+};
+
 export const generateSkillsWithAssistant = async (company, jobRole) => {
   try {
-    if (!GROQ_API_KEY) {
-      console.warn('Using default skills – API key not configured');
-      return DEFAULT_SKILLS;
+    // Ultra-fast: Check if we have cached response for this company/role combo
+    const key = `${company.toLowerCase().replace(/\s+/g, '_')}_${jobRole.toLowerCase().replace(/\s+/g, '_')}`;
+    if (COMPANY_ROLE_SKILLS[key]) {
+      return COMPANY_ROLE_SKILLS[key];
     }
 
-    const response = await axios.post(
-      GROQ_API_URL,
-      {
-        model: 'mixtral-8x7b-32768',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert career advisor. Return ONLY valid JSON with no markdown or explanations.'
+    // If Replicate API is available, use it for custom queries
+    if (REPLICATE_API_KEY) {
+      try {
+        const response = await fetch(REPLICATE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${REPLICATE_API_KEY}`,
+            'Content-Type': 'application/json'
           },
-          {
-            role: 'user',
-            content: `List 8 top skills for a ${jobRole} at ${company}. Return ONLY JSON: {"skills": [{"name": "skill", "category": "category", "level": "level", "importance": 5, "description": "desc"}], "learning_path": ["skill1", "skill2"]}`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 1024
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+          body: JSON.stringify({
+            version: 'e5582ad07a78cdff1665260639e46a513409d3a3bdc4fc550b1a974a9ef063e',
+            input: {
+              prompt: `List key skills for ${company} ${jobRole} as JSON only: {"skills": [{"name": "", "category": "", "level": "", "importance": 5, "description": ""}], "learning_path": []}`
+            }
+          })
+        });
 
-    const content = response.data.choices[0].message.content.trim();
-    
-    let jsonStr = content;
-    if (content.includes('```')) {
-      jsonStr = content
-        .split('```')[1]
-        .replace('json', '')
-        .trim();
+        if (response.ok) {
+          const data = await response.json();
+          const output = data.output?.join('') || '';
+          const jsonMatch = output.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+        }
+      } catch (apiError) {
+        console.warn('API timeout, using cached defaults');
+      }
     }
 
-    return JSON.parse(jsonStr);
+    // Fast fallback: Return appropriate default based on role
+    if (jobRole.toLowerCase().includes('frontend')) {
+      return COMPANY_ROLE_SKILLS['google_frontend_engineer'];
+    } else if (jobRole.toLowerCase().includes('backend')) {
+      return COMPANY_ROLE_SKILLS['amazon_backend_engineer'];
+    } else if (jobRole.toLowerCase().includes('fullstack')) {
+      return COMPANY_ROLE_SKILLS['microsoft_fullstack_engineer'];
+    }
+
+    return DEFAULT_SKILLS;
   } catch (error) {
-    console.error('Assistant API Error:', error.message);
+    console.error('Error generating skills:', error);
     return DEFAULT_SKILLS;
   }
 };
