@@ -1,4 +1,9 @@
-// Ultra-fast instant skill generation - No API calls, pure cached responses
+// HuggingFace Inference API - Free Tier with Mistral Model
+// Fast, reliable, no authentication required for basic tier
+
+const HF_API_KEY = import.meta.env.VITE_HF_API_KEY || 'free-tier';
+const HF_MODEL = 'mistralai/Mistral-7B-Instruct-v0.1';
+const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
 
 const DEFAULT_SKILLS = {
   skills: [
@@ -14,46 +19,48 @@ const DEFAULT_SKILLS = {
   learning_path: ['JavaScript', 'React', 'Node.js', 'SQL', 'REST APIs']
 };
 
-const SKILL_DATABASE = {
-  amazon: {
-    backend: { skills: [{ name: 'Java', category: 'programming', level: 'Advanced', importance: 5, description: 'Primary backend language' }, { name: 'AWS', category: 'devops', level: 'Advanced', importance: 5, description: 'Cloud platform' }, { name: 'Database Design', category: 'database', level: 'Advanced', importance: 5, description: 'Scale databases' }, { name: 'Python', category: 'programming', level: 'Intermediate', importance: 4, description: 'Scripting' }, { name: 'Microservices', category: 'backend', level: 'Advanced', importance: 5, description: 'Service architecture' }, { name: 'System Design', category: 'backend', level: 'Advanced', importance: 5, description: 'Large systems' }], learning_path: ['Java', 'AWS', 'Database Design', 'Microservices', 'System Design'] },
-    frontend: { skills: [{ name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'UI library' }, { name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Type safety' }, { name: 'CSS', category: 'frontend', level: 'Advanced', importance: 4, description: 'Styling' }, { name: 'JavaScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Core language' }, { name: 'Testing', category: 'devops', level: 'Intermediate', importance: 4, description: 'Quality assurance' }, { name: 'Web Performance', category: 'frontend', level: 'Advanced', importance: 4, description: 'Fast loading' }], learning_path: ['JavaScript', 'React', 'TypeScript', 'CSS', 'Testing'] },
-    fullstack: { skills: [{ name: 'JavaScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Full stack' }, { name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'Frontend UI' }, { name: 'Node.js', category: 'backend', level: 'Advanced', importance: 5, description: 'Backend' }, { name: 'SQL', category: 'database', level: 'Advanced', importance: 4, description: 'Databases' }, { name: 'AWS', category: 'devops', level: 'Intermediate', importance: 4, description: 'Cloud' }, { name: 'DevOps', category: 'devops', level: 'Intermediate', importance: 4, description: 'CI/CD' }], learning_path: ['JavaScript', 'React', 'Node.js', 'SQL', 'AWS', 'DevOps'] }
-  },
-  google: {
-    backend: { skills: [{ name: 'Go', category: 'programming', level: 'Advanced', importance: 5, description: 'Google language' }, { name: 'Kubernetes', category: 'devops', level: 'Advanced', importance: 5, description: 'Container orchestration' }, { name: 'Python', category: 'programming', level: 'Advanced', importance: 5, description: 'Data & scripts' }, { name: 'Protocol Buffers', category: 'backend', level: 'Intermediate', importance: 4, description: 'Serialization' }, { name: 'Cloud Pub/Sub', category: 'devops', level: 'Intermediate', importance: 4, description: 'Messaging' }, { name: 'Spanner', category: 'database', level: 'Intermediate', importance: 4, description: 'Distributed DB' }], learning_path: ['Go', 'Python', 'Kubernetes', 'Cloud Pub/Sub', 'Spanner'] },
-    frontend: { skills: [{ name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'UI library' }, { name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Typed JS' }, { name: 'Web Performance', category: 'frontend', level: 'Advanced', importance: 5, description: 'Speed' }, { name: 'CSS/SCSS', category: 'frontend', level: 'Advanced', importance: 4, description: 'Styling' }, { name: 'Testing', category: 'devops', level: 'Advanced', importance: 4, description: 'Jest, Cypress' }, { name: 'Accessibility', category: 'frontend', level: 'Intermediate', importance: 4, description: 'A11y' }], learning_path: ['React', 'TypeScript', 'Web Performance', 'CSS/SCSS', 'Testing'] },
-    fullstack: { skills: [{ name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'Frontend' }, { name: 'Python', category: 'programming', level: 'Advanced', importance: 5, description: 'Backend' }, { name: 'Google Cloud', category: 'devops', level: 'Advanced', importance: 5, description: 'Infrastructure' }, { name: 'Firestore', category: 'database', level: 'Advanced', importance: 4, description: 'Database' }, { name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Strong typing' }, { name: 'DevOps', category: 'devops', level: 'Intermediate', importance: 4, description: 'Deployment' }], learning_path: ['React', 'Python', 'TypeScript', 'Google Cloud', 'Firestore'] }
-  },
-  microsoft: {
-    backend: { skills: [{ name: 'C#', category: 'programming', level: 'Advanced', importance: 5, description: 'Main language' }, { name: 'Azure', category: 'devops', level: 'Advanced', importance: 5, description: 'Cloud' }, { name: 'SQL Server', category: 'database', level: 'Advanced', importance: 5, description: 'Database' }, { name: '.NET', category: 'programming', level: 'Advanced', importance: 5, description: 'Framework' }, { name: 'Entity Framework', category: 'backend', level: 'Advanced', importance: 4, description: 'ORM' }, { name: 'PowerShell', category: 'devops', level: 'Intermediate', importance: 4, description: 'Scripting' }], learning_path: ['C#', '.NET', 'SQL Server', 'Azure', 'Entity Framework'] },
-    frontend: { skills: [{ name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Strong typing' }, { name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'UI library' }, { name: 'CSS', category: 'frontend', level: 'Advanced', importance: 4, description: 'Styling' }, { name: 'Azure DevOps', category: 'devops', level: 'Intermediate', importance: 4, description: 'CI/CD' }, { name: 'Testing', category: 'devops', level: 'Advanced', importance: 4, description: 'Quality' }, { name: 'Web Standards', category: 'frontend', level: 'Advanced', importance: 4, description: 'Best practices' }], learning_path: ['TypeScript', 'React', 'CSS', 'Azure DevOps', 'Testing'] },
-    fullstack: { skills: [{ name: 'C#', category: 'programming', level: 'Advanced', importance: 5, description: '.NET backend' }, { name: 'React', category: 'frontend', level: 'Advanced', importance: 5, description: 'Frontend UI' }, { name: 'Azure', category: 'devops', level: 'Advanced', importance: 5, description: 'Cloud platform' }, { name: 'SQL Server', category: 'database', level: 'Advanced', importance: 4, description: 'Database' }, { name: 'TypeScript', category: 'programming', level: 'Advanced', importance: 5, description: 'Strong typing' }, { name: 'DevOps', category: 'devops', level: 'Intermediate', importance: 4, description: 'Pipelines' }], learning_path: ['C#', 'TypeScript', 'React', 'SQL Server', 'Azure'] }
-  }
-};
-
 export const generateSkillsWithAssistant = async (company, jobRole) => {
   try {
-    const companyKey = company.toLowerCase().trim();
-    const roleKey = jobRole.toLowerCase().includes('full') ? 'fullstack' : 
-                    jobRole.toLowerCase().includes('backend') ? 'backend' :
-                    jobRole.toLowerCase().includes('frontend') ? 'frontend' : 'fullstack';
+    const prompt = `You are a career advisor expert. Analyze the following job requirement and suggest exactly 6 specific technical skills needed. Return ONLY valid JSON with no markdown or explanation:\n\nCompany: ${company}\nJob Role: ${jobRole}\n\nReturn this exact JSON structure (no other text):\n{"skills": [{"name": "Skill", "category": "programming/frontend/backend/database/devops", "level": "Beginner/Intermediate/Advanced", "importance": 5, "description": "Brief description"}], "learning_path": ["Skill1", "Skill2", "Skill3"]}`;
+
+    const response = await fetch(HF_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': HF_API_KEY !== 'free-tier' ? `Bearer ${HF_API_KEY}` : undefined,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 500,
+          temperature: 0.7,
+          top_p: 0.9
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.warn('API call failed, using default skills');
+      return DEFAULT_SKILLS;
+    }
+
+    const data = await response.json();
+    const text = Array.isArray(data) ? data[0]?.generated_text || '' : data?.generated_text || '';
     
-    // Return from database instantly
-    if (SKILL_DATABASE[companyKey] && SKILL_DATABASE[companyKey][roleKey]) {
-      return SKILL_DATABASE[companyKey][roleKey];
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.warn('JSON parse failed');
+        return DEFAULT_SKILLS;
+      }
     }
     
-    // Fallback based on role type
-    if (roleKey === 'backend') {
-      return SKILL_DATABASE.amazon?.backend || DEFAULT_SKILLS;
-    } else if (roleKey === 'frontend') {
-      return SKILL_DATABASE.google?.frontend || DEFAULT_SKILLS;
-    } else {
-      return SKILL_DATABASE.microsoft?.fullstack || DEFAULT_SKILLS;
-    }
+    return DEFAULT_SKILLS;
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error generating skills:', error);
     return DEFAULT_SKILLS;
   }
 };
