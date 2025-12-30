@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const COMET_API_KEY = import.meta.env.VITE_PPLX_API_KEY;
-const COMET_API_URL = 'https://api.perplexity.ai/chat/completions';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const DEFAULT_SKILLS = {
   skills: [
@@ -19,24 +19,23 @@ const DEFAULT_SKILLS = {
 
 export const generateSkillsWithAssistant = async (company, jobRole) => {
   try {
-    if (!COMET_API_KEY) {
-      console.warn('Using default skills - API key not configured');
+    if (!GROQ_API_KEY) {
+      console.warn('Using default skills – API key not configured');
       return DEFAULT_SKILLS;
     }
 
     const response = await axios.post(
-      COMET_API_URL,
+      GROQ_API_URL,
       {
-        model: 'llama-3.1-sonar-small-128k-online',
+        model: 'mixtral-8x7b-32768',
         messages: [
           {
             role: 'system',
-            content:
-              'You are an expert career advisor. Return ONLY valid JSON with no markdown or explanations.'
+            content: 'You are an expert career advisor. Return ONLY valid JSON with no markdown or explanations.'
           },
           {
             role: 'user',
-            content: `List 8 top skills for a ${jobRole} at ${company}. Return ONLY JSON: {"skills": [{"name": "skill", "category": "frontend/backend/database/devops/programming", "level": "Beginner/Intermediate/Advanced", "importance": 1-5, "description": "brief"}], "learning_path": ["skill1", "skill2"]}`
+            content: `List 8 top skills for a ${jobRole} at ${company}. Return ONLY JSON: {"skills": [{"name": "skill", "category": "category", "level": "level", "importance": 5, "description": "desc"}], "learning_path": ["skill1", "skill2"]}`
           }
         ],
         temperature: 0.3,
@@ -44,14 +43,14 @@ export const generateSkillsWithAssistant = async (company, jobRole) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${COMET_API_KEY}`,
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
     );
 
     const content = response.data.choices[0].message.content.trim();
-
+    
     let jsonStr = content;
     if (content.includes('```')) {
       jsonStr = content
